@@ -1,0 +1,154 @@
+{
+  "base_score": 585,
+  "score_bounds": {"min": 300, "max": 900},
+  "probability_mapping": {"min_prob": 0.04, "max_prob": 0.82},
+  "priority_band_thresholds": [
+    {"label": "Prime", "min_score": 790},
+    {"label": "High", "min_score": 700},
+    {"label": "Moderate", "min_score": 610},
+    {"label": "Low", "min_score": 520},
+    {"label": "Suppressed", "min_score": 0}
+  ],
+  "decision_thresholds": {
+    "RM Priority Lead": 790,
+    "Campaign Target": 700,
+    "Digital Nurture": 610,
+    "Hold / Defer": 520,
+    "Suppress": 0
+  },
+  "next_step_mapping": {
+    "RM Priority Lead": "Route to RM within 48 hours with value talking points and product rationale.",
+    "Campaign Target": "Push into the next campaign wave with personalization tags and channel controls.",
+    "Digital Nurture": "Start a lighter digital journey and rescore after the next engagement signal refresh.",
+    "Hold / Defer": "Keep out of the active audience until new engagement or relationship signals arrive.",
+    "Suppress": "Suppress outreach. Address service, compliance, or contact-fatigue constraints before reactivating."
+  },
+  "product_profiles": {
+    "Credit Card": {"base_adjustment": 24, "value_multiplier": 0.95, "preferred_channel": "Digital"},
+    "Personal Loan": {"base_adjustment": 10, "value_multiplier": 1.15, "preferred_channel": "Hybrid"},
+    "Insurance": {"base_adjustment": 5, "value_multiplier": 1.05, "preferred_channel": "RM / Branch"},
+    "Wealth Upgrade": {"base_adjustment": 18, "value_multiplier": 1.35, "preferred_channel": "RM / Branch"}
+  },
+  "rules": [
+    {
+      "name": "bureau_score",
+      "metric": "bureau_score",
+      "bands": [
+        {"min": 780, "points": 75, "rationale": "Strong bureau quality supports confident targeting and lower friction sales."},
+        {"min": 735, "max": 779, "points": 48, "rationale": "Solid bureau quality supports product expansion."},
+        {"min": 680, "max": 734, "points": 18, "rationale": "Average bureau quality supports selective targeting."},
+        {"min": 0, "max": 679, "points": -70, "rationale": "Weak bureau quality reduces suitability for proactive sales."}
+      ]
+    },
+    {
+      "name": "monthly_income",
+      "metric": "monthly_income",
+      "bands": [
+        {"min": 180000, "points": 55, "rationale": "High income expands product fit and expected value."},
+        {"min": 100000, "max": 179999, "points": 32, "rationale": "Healthy income supports multi-product eligibility."},
+        {"min": 55000, "max": 99999, "points": 10, "rationale": "Income profile supports standard retail offers."},
+        {"min": 0, "max": 54999, "points": -24, "rationale": "Lower income narrows product fit and value potential."}
+      ]
+    },
+    {
+      "name": "avg_monthly_balance",
+      "metric": "avg_monthly_balance",
+      "bands": [
+        {"min": 300000, "points": 68, "rationale": "Strong balances indicate deep wallet share potential."},
+        {"min": 125000, "max": 299999, "points": 38, "rationale": "Balances support richer cross-sell conversations."},
+        {"min": 40000, "max": 124999, "points": 14, "rationale": "Moderate balances support selected propositions."},
+        {"min": 0, "max": 39999, "points": -16, "rationale": "Low balances reduce immediate commercial upside."}
+      ]
+    },
+    {
+      "name": "digital_login_count_30d",
+      "metric": "digital_login_count_30d",
+      "bands": [
+        {"min": 18, "points": 34, "rationale": "High digital activity improves contactability and self-serve conversion potential."},
+        {"min": 8, "max": 17, "points": 18, "rationale": "Steady digital activity supports campaign response."},
+        {"min": 3, "max": 7, "points": 4, "rationale": "Limited digital activity suggests softer digital treatment."},
+        {"min": 0, "max": 2, "points": -20, "rationale": "Very low digital engagement reduces campaign effectiveness."}
+      ]
+    },
+    {
+      "name": "relationship_tenure_months",
+      "metric": "relationship_tenure_months",
+      "bands": [
+        {"min": 84, "points": 34, "rationale": "Long tenure supports deeper trust and broader product fit."},
+        {"min": 36, "max": 83, "points": 20, "rationale": "Established relationship supports expansion."},
+        {"min": 12, "max": 35, "points": 8, "rationale": "Relationship is building but not yet fully mature."},
+        {"min": 0, "max": 11, "points": -18, "rationale": "New relationship warrants lighter targeting first."}
+      ]
+    },
+    {
+      "name": "prior_offer_accept_count_12m",
+      "metric": "prior_offer_accept_count_12m",
+      "bands": [
+        {"min": 2, "points": 30, "rationale": "Prior acceptance history signals openness to relevant offers."},
+        {"min": 1, "max": 1, "points": 14, "rationale": "Some historical acceptance supports follow-on engagement."},
+        {"min": 0, "max": 0, "points": 0, "rationale": "No prior acceptance history available."}
+      ]
+    },
+    {
+      "name": "last_campaign_contact_days",
+      "metric": "last_campaign_contact_days",
+      "bands": [
+        {"min": 60, "points": 18, "rationale": "Enough cooling-off time has passed since the last contact."},
+        {"min": 21, "max": 59, "points": 4, "rationale": "Recent contact is acceptable but should be monitored."},
+        {"min": 8, "max": 20, "points": -22, "rationale": "Recent campaign contact increases fatigue risk."},
+        {"min": 0, "max": 7, "points": -60, "rationale": "Very recent contact should usually be suppressed or deferred."}
+      ]
+    },
+    {
+      "name": "rm_interactions_90d",
+      "metric": "rm_interactions_90d",
+      "bands": [
+        {"min": 4, "points": 26, "rationale": "Recent RM engagement supports assisted conversion and lead priority."},
+        {"min": 2, "max": 3, "points": 12, "rationale": "Some RM activity supports selective lead routing."},
+        {"min": 0, "max": 1, "points": 0, "rationale": "Low RM interaction suggests digital-first treatment."}
+      ]
+    },
+    {
+      "name": "recent_service_issue_flag",
+      "metric": "recent_service_issue_flag",
+      "bands": [
+        {"min": 1, "points": -95, "rationale": "Recent service issues materially increase suppression risk."},
+        {"min": 0, "max": 0, "points": 0, "rationale": "No recent service risk flag."}
+      ]
+    },
+    {
+      "name": "kyc_complete_flag",
+      "metric": "kyc_complete_flag",
+      "bands": [
+        {"min": 1, "points": 16, "rationale": "KYC completion supports operational readiness for fulfillment."},
+        {"min": 0, "max": 0, "points": -55, "rationale": "Incomplete KYC blocks smooth fulfillment and should reduce targeting priority."}
+      ]
+    },
+    {
+      "name": "target_gap",
+      "metric": "target_gap",
+      "bands": [
+        {"min": 1, "points": 54, "rationale": "Customer does not already hold the target product, preserving cross-sell whitespace."},
+        {"min": 0, "max": 0, "points": -72, "rationale": "Target product is already held, so cross-sell value is limited."}
+      ]
+    }
+  ],
+  "product_specific_rules": {
+    "Credit Card": [
+      {"metric": "salary_customer_flag", "bands": [{"min": 1, "points": 22, "rationale": "Salary account behavior supports card activation and ongoing usage."}]},
+      {"metric": "app_sessions_30d", "bands": [{"min": 10, "points": 16, "rationale": "High app activity supports digital card acquisition journeys."}, {"min": 0, "max": 9, "points": 0, "rationale": "App activity does not materially improve the card journey."}]}
+    ],
+    "Personal Loan": [
+      {"metric": "avg_credit_txn_count_3m", "bands": [{"min": 8, "points": 12, "rationale": "Healthy inflow behavior supports personal loan outreach."}]},
+      {"metric": "has_home_loan_flag", "bands": [{"min": 1, "points": -10, "rationale": "Existing mortgage exposure slightly reduces unsecured loan appetite."}, {"min": 0, "max": 0, "points": 0, "rationale": "No home loan overlap penalty."}]}
+    ],
+    "Insurance": [
+      {"metric": "age", "bands": [{"min": 32, "points": 12, "rationale": "Age profile supports protection and family-security conversations."}, {"min": 0, "max": 31, "points": 0, "rationale": "Younger profile reduces urgency for protection products."}]},
+      {"metric": "branch_visits_90d", "bands": [{"min": 2, "points": 14, "rationale": "Recent branch activity supports assisted insurance conversations."}, {"min": 0, "max": 1, "points": 0, "rationale": "Limited branch activity suggests lower assisted product readiness."}]}
+    ],
+    "Wealth Upgrade": [
+      {"metric": "segment_wealthy", "bands": [{"min": 1, "points": 28, "rationale": "Affluent / HNI profile strongly supports wealth upgrade outreach."}, {"min": 0, "max": 0, "points": -18, "rationale": "Wealth upgrade is less compelling outside affluent segments."}]},
+      {"metric": "product_holding_count", "bands": [{"min": 3, "points": 18, "rationale": "Broader relationship depth supports wealth conversion."}, {"min": 0, "max": 2, "points": 0, "rationale": "Relationship depth does not yet strongly support wealth positioning."}]}
+    ]
+  }
+}
