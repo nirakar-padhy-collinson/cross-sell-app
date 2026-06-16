@@ -1,0 +1,274 @@
+{
+  "dataset_version": "cross-sell-demo-v2",
+  "data_path": "/Users/nirakar.padhy/Desktop/learn/Banking DS & AI Demo/cross-sell-app/data/historical_cross_sell_opportunities.csv",
+  "schema_issues": [],
+  "portfolio": {
+    "opportunities": 905,
+    "targetable_rate": 0.4619,
+    "suppress_rate": 0.3193,
+    "avg_net_expected_value": 2766.81,
+    "conversion_lift": {
+      "contacted_conversion": 0.2346,
+      "holdout_conversion": 0.05,
+      "absolute_lift": 0.1846,
+      "relative_lift": 3.6927
+    },
+    "top_decile_lift": {
+      "top_decile_conversion": 0.2088,
+      "portfolio_conversion": 0.0961,
+      "lift": 2.1719
+    },
+    "product_performance": [
+      {
+        "historical_recommended_product": "Wealth Upgrade",
+        "opportunities": 175,
+        "targetable_rate": 0.4228571428571429,
+        "suppress_rate": 0.37714285714285717,
+        "conversion_rate": 0.08,
+        "avg_propensity": 0.7109262857142857,
+        "avg_net_expected_value": 5626.601485714285,
+        "realized_value": 1351.3085142857142
+      },
+      {
+        "historical_recommended_product": "Personal Loan",
+        "opportunities": 226,
+        "targetable_rate": 0.5,
+        "suppress_rate": 0.35398230088495575,
+        "conversion_rate": 0.11946902654867257,
+        "avg_propensity": 0.637879203539823,
+        "avg_net_expected_value": 3371.3049557522127,
+        "realized_value": 1010.4641150442478
+      },
+      {
+        "historical_recommended_product": "Insurance",
+        "opportunities": 214,
+        "targetable_rate": 0.4485981308411215,
+        "suppress_rate": 0.32710280373831774,
+        "conversion_rate": 0.102803738317757,
+        "avg_propensity": 0.6411771028037383,
+        "avg_net_expected_value": 2008.7982242990654,
+        "realized_value": 588.5913551401869
+      },
+      {
+        "historical_recommended_product": "Credit Card",
+        "opportunities": 290,
+        "targetable_rate": 0.46551724137931033,
+        "suppress_rate": 0.2517241379310345,
+        "conversion_rate": 0.08275862068965517,
+        "avg_propensity": 0.6440248275862069,
+        "avg_net_expected_value": 1129.3501379310344,
+        "realized_value": 252.227724137931
+      }
+    ],
+    "rm_capacity_allocation": [
+      {
+        "employee_id": "EM0006",
+        "branch_id": "BR0002",
+        "eligible_leads": 50,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 6081.773,
+        "expected_pipeline_value": 304088.65
+      },
+      {
+        "employee_id": "EM0002",
+        "branch_id": "BR0001",
+        "eligible_leads": 43,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 6958.636279069767,
+        "expected_pipeline_value": 299221.36
+      },
+      {
+        "employee_id": "EM0003",
+        "branch_id": "BR0001",
+        "eligible_leads": 44,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 6396.557727272727,
+        "expected_pipeline_value": 281448.54
+      },
+      {
+        "employee_id": "EM0008",
+        "branch_id": "BR0002",
+        "eligible_leads": 42,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 6529.831666666667,
+        "expected_pipeline_value": 274252.93
+      },
+      {
+        "employee_id": "EM0007",
+        "branch_id": "BR0002",
+        "eligible_leads": 48,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 5649.4297916666665,
+        "expected_pipeline_value": 271172.63
+      },
+      {
+        "employee_id": "EM0009",
+        "branch_id": "BR0002",
+        "eligible_leads": 39,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 6258.152820512821,
+        "expected_pipeline_value": 244067.96
+      },
+      {
+        "employee_id": "EM0010",
+        "branch_id": "BR0002",
+        "eligible_leads": 42,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 5745.318333333334,
+        "expected_pipeline_value": 241303.37
+      },
+      {
+        "employee_id": "EM0001",
+        "branch_id": "BR0001",
+        "eligible_leads": 40,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 5340.7835,
+        "expected_pipeline_value": 213631.34
+      },
+      {
+        "employee_id": "EM0005",
+        "branch_id": "BR0001",
+        "eligible_leads": 32,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 6139.11125,
+        "expected_pipeline_value": 196451.56
+      },
+      {
+        "employee_id": "EM0004",
+        "branch_id": "BR0001",
+        "eligible_leads": 38,
+        "allocated_leads": 25,
+        "avg_net_expected_value": 4692.7947368421055,
+        "expected_pipeline_value": 178326.2
+      }
+    ],
+    "fairness_proxy": [
+      {
+        "proxy_attribute": "segment",
+        "segment": "Affluent",
+        "opportunities": 373,
+        "targetable_rate": 0.5120643431635389,
+        "suppress_rate": 0.3190348525469169,
+        "conversion_rate": 0.11528150134048257,
+        "avg_propensity": 0.7059380697050939
+      },
+      {
+        "proxy_attribute": "segment",
+        "segment": "HNI",
+        "opportunities": 14,
+        "targetable_rate": 0.5,
+        "suppress_rate": 0.5,
+        "conversion_rate": 0.21428571428571427,
+        "avg_propensity": 0.7526785714285714
+      },
+      {
+        "proxy_attribute": "segment",
+        "segment": "Mass",
+        "opportunities": 518,
+        "targetable_rate": 0.4247104247104247,
+        "suppress_rate": 0.31467181467181465,
+        "conversion_rate": 0.07915057915057915,
+        "avg_propensity": 0.61525
+      },
+      {
+        "proxy_attribute": "city_tier",
+        "segment": "Tier 1",
+        "opportunities": 437,
+        "targetable_rate": 0.4645308924485126,
+        "suppress_rate": 0.33867276887871856,
+        "conversion_rate": 0.09153318077803203,
+        "avg_propensity": 0.6597013729977116
+      },
+      {
+        "proxy_attribute": "city_tier",
+        "segment": "Tier 2",
+        "opportunities": 273,
+        "targetable_rate": 0.4542124542124542,
+        "suppress_rate": 0.29304029304029305,
+        "conversion_rate": 0.11721611721611722,
+        "avg_propensity": 0.6506619047619048
+      },
+      {
+        "proxy_attribute": "city_tier",
+        "segment": "Tier 3",
+        "opportunities": 195,
+        "targetable_rate": 0.4666666666666667,
+        "suppress_rate": 0.3128205128205128,
+        "conversion_rate": 0.07692307692307693,
+        "avg_propensity": 0.6493933333333334
+      },
+      {
+        "proxy_attribute": "employment_type",
+        "segment": "Business Owner",
+        "opportunities": 70,
+        "targetable_rate": 0.5428571428571428,
+        "suppress_rate": 0.3142857142857143,
+        "conversion_rate": 0.11428571428571428,
+        "avg_propensity": 0.7183957142857144
+      },
+      {
+        "proxy_attribute": "employment_type",
+        "segment": "Contract",
+        "opportunities": 54,
+        "targetable_rate": 0.4074074074074074,
+        "suppress_rate": 0.35185185185185186,
+        "conversion_rate": 0.09259259259259259,
+        "avg_propensity": 0.5938722222222222
+      },
+      {
+        "proxy_attribute": "employment_type",
+        "segment": "Professional",
+        "opportunities": 159,
+        "targetable_rate": 0.4779874213836478,
+        "suppress_rate": 0.32075471698113206,
+        "conversion_rate": 0.10062893081761007,
+        "avg_propensity": 0.7003754716981132
+      },
+      {
+        "proxy_attribute": "employment_type",
+        "segment": "Salaried",
+        "opportunities": 451,
+        "targetable_rate": 0.4656319290465632,
+        "suppress_rate": 0.29711751662971175,
+        "conversion_rate": 0.09977827050997783,
+        "avg_propensity": 0.6405221729490022
+      },
+      {
+        "proxy_attribute": "employment_type",
+        "segment": "Self-Employed",
+        "opportunities": 171,
+        "targetable_rate": 0.42105263157894735,
+        "suppress_rate": 0.3684210526315789,
+        "conversion_rate": 0.07602339181286549,
+        "avg_propensity": 0.643040350877193
+      },
+      {
+        "proxy_attribute": "channel_preference",
+        "segment": "Digital",
+        "opportunities": 434,
+        "targetable_rate": 0.423963133640553,
+        "suppress_rate": 0.3087557603686636,
+        "conversion_rate": 0.07834101382488479,
+        "avg_propensity": 0.6471359447004609
+      },
+      {
+        "proxy_attribute": "channel_preference",
+        "segment": "Hybrid",
+        "opportunities": 272,
+        "targetable_rate": 0.5147058823529411,
+        "suppress_rate": 0.29044117647058826,
+        "conversion_rate": 0.11764705882352941,
+        "avg_propensity": 0.659645955882353
+      },
+      {
+        "proxy_attribute": "channel_preference",
+        "segment": "RM / Branch",
+        "opportunities": 199,
+        "targetable_rate": 0.4723618090452261,
+        "suppress_rate": 0.38190954773869346,
+        "conversion_rate": 0.10552763819095477,
+        "avg_propensity": 0.6646793969849246
+      }
+    ]
+  }
+}

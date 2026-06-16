@@ -9,22 +9,31 @@ from models.contracts import CrossSellOpportunity, FactorContribution, Recommend
 from utils.helpers import (
     PRODUCTS,
     clamp,
+    contact_cost,
     decision_from_score,
     default_channel,
-    expected_value,
+    gross_expected_value,
+    net_expected_value,
     next_step_from_decision,
     priority_band_from_score,
     product_already_held,
+    product_eligibility_issues,
     safe_divide,
+    suppressing_issues,
     target_gap,
+    uplift_score,
 )
+
+
+APP_DIR = Path(__file__).resolve().parents[1]
+DEFAULT_CONFIG_PATH = APP_DIR / "scoring" / "recommendation_engine_config.json"
 
 
 class RuleBasedRecommendationEngine:
     name = "Rule-Based Recommendation Engine"
 
-    def __init__(self, config_path: str = "scoring/recommendation_engine_config.json"):
-        self.config_path = Path(config_path)
+    def __init__(self, config_path: str | None = None):
+        self.config_path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
         with self.config_path.open("r", encoding="utf-8") as handle:
             self.config = json.load(handle)
 
@@ -82,6 +91,29 @@ class RuleBasedRecommendationEngine:
             )
 
         score = clamp(score, float(self.config["score_bounds"]["min"]), float(self.config["score_bounds"]["max"]))
+        already_held = bool(product_already_held(app, product))
+        eligibility_issues = product_eligibility_issues(app, product)
+        suppression_reasons = suppressing_issues(eligibility_issues)
+        if already_held:
+            contributions.append(
+                FactorContribution(
+                    factor="Existing product",
+                    impact_direction="Negative",
+                    points=-120.0,
+                    description=f"Customer already holds {product}, so this should not be routed as a cross-sell lead.",
+                )
+            )
+        for issue in eligibility_issues:
+            if already_held and issue == f"Customer already holds {product}.":
+                continue
+            contributions.append(
+                FactorContribution(
+                    factor="Eligibility",
+                    impact_direction="Negative",
+                    points=-90.0 if issue in suppression_reasons else -45.0,
+                    description=issue,
+                )
+            )
 
         # Relationship / engagement / fit / value lenses for UI cards.
         relationship_score = round(
@@ -154,19 +186,26 @@ class RuleBasedRecommendationEngine:
             4,
         )
 
-        suppression_flag = int(
-            app.recent_service_issue_flag == 1
-            or app.kyc_complete_flag == 0
-            or app.last_campaign_contact_days <= 4
-        )
-        if product_already_held(app, product):
-            suppression_flag = int(propensity_probability < 0.40 and app.target_product != "Auto Select")
+        suppression_flag = int(bool(suppression_reasons))
 
-        decision = decision_from_score(score, suppression_flag)
+        action_score = score
+        if suppression_flag:
+            action_score = min(action_score, 500.0)
+        elif already_held or eligibility_issues:
+            action_score = min(action_score, 520.0)
+
+        decision = "Hold / Defer" if (already_held or eligibility_issues) and not suppression_flag else decision_from_score(action_score, suppression_flag)
         channel = default_channel(decision, propensity_probability, app.rm_interactions_90d, app.channel_preference)
-        if decision != "Suppress" and product_profile.get("preferred_channel") == "RM / Branch" and app.rm_interactions_90d >= 2:
+        if (already_held or eligibility_issues) and not suppression_flag:
+            channel = "No Outreach"
+        if (
+            not already_held
+            and decision != "Suppress"
+            and product_profile.get("preferred_channel") == "RM / Branch"
+            and app.rm_interactions_90d >= 2
+        ):
             channel = "RM / Branch"
-        priority_band = priority_band_from_score(score)
+        priority_band = priority_band_from_score(action_score)
         next_step = self.config["next_step_mapping"].get(decision, next_step_from_decision(decision))
 
         ranked = sorted(contributions, key=lambda c: abs(c.points), reverse=True)
@@ -174,13 +213,15 @@ class RuleBasedRecommendationEngine:
         negatives = [c.description for c in ranked if c.impact_direction == "Negative"][:3]
 
         value_multiplier = float(product_profile.get("value_multiplier", 1.0))
-        expected_revenue = expected_value(propensity_probability, product, value_multiplier)
+        gross_revenue = 0.0 if suppression_flag or already_held or eligibility_issues else gross_expected_value(propensity_probability, product, value_multiplier)
+        net_revenue = 0.0 if suppression_flag or already_held or eligibility_issues else net_expected_value(propensity_probability, product, channel, value_multiplier)
+        expected_revenue = net_revenue
 
         return RecommendationOutput(
             engine_name=self.name,
             recommended_product=product,
             recommended_channel=channel,
-            priority_score=round(score, 1),
+            priority_score=round(action_score, 1),
             propensity_probability=propensity_probability,
             priority_band=priority_band,
             decision=decision,
@@ -191,6 +232,10 @@ class RuleBasedRecommendationEngine:
             product_fit_score=product_fit_score,
             value_score=value_score,
             suppression_flag=suppression_flag,
+            gross_expected_value=gross_revenue,
+            contact_cost=contact_cost(channel),
+            net_expected_value=net_revenue,
+            uplift_score=uplift_score(propensity_probability),
             top_positive_reasons=positives,
             top_negative_reasons=negatives,
             factor_contributions=ranked[:10],
@@ -198,11 +243,24 @@ class RuleBasedRecommendationEngine:
         )
 
     def evaluate(self, app: CrossSellOpportunity) -> RecommendationOutput:
-        candidates = PRODUCTS if app.target_product == "Auto Select" else [app.target_product]
+        candidates = (
+            [product for product in PRODUCTS if not product_already_held(app, product)]
+            if app.target_product == "Auto Select"
+            else [app.target_product]
+        )
+        if not candidates:
+            candidates = PRODUCTS
         candidate_outputs = [self._evaluate_product(app, product) for product in candidates]
+        decision_rank = {
+            "RM Priority Lead": 4,
+            "Campaign Target": 3,
+            "Digital Nurture": 2,
+            "Hold / Defer": 1,
+            "Suppress": 0,
+        }
         ranked = sorted(
             candidate_outputs,
-            key=lambda x: (x.decision != "Suppress", x.propensity_probability, x.expected_value, x.priority_score),
+            key=lambda x: (decision_rank.get(x.decision, 0), x.expected_value, x.propensity_probability, x.priority_score),
             reverse=True,
         )
         best = ranked[0]

@@ -1,0 +1,42 @@
+{
+  "minimum_cooldown_days": {
+    "Credit Card": 7,
+    "Personal Loan": 14,
+    "Insurance": 21,
+    "Wealth Upgrade": 30
+  },
+  "channel_costs": {
+    "Digital": 8.0,
+    "Hybrid": 28.0,
+    "Outbound Campaign": 18.0,
+    "RM / Branch": 145.0,
+    "No Outreach": 0.0
+  },
+  "hard_suppression_checks": [
+    "missing consent",
+    "not contactable",
+    "incomplete KYC",
+    "recent service issue",
+    "active campaign cooldown"
+  ],
+  "suitability_checks": {
+    "Credit Card": [
+      "bureau_score >= 650",
+      "monthly_income >= 35000",
+      "customer does not already hold a credit card"
+    ],
+    "Personal Loan": [
+      "bureau_score >= 680",
+      "monthly_income >= 55000",
+      "customer does not already hold a personal loan"
+    ],
+    "Insurance": [
+      "age >= 25",
+      "customer does not already hold insurance"
+    ],
+    "Wealth Upgrade": [
+      "segment is Affluent or HNI, or average monthly balance >= 250000"
+    ]
+  },
+  "capacity_note": "RM lead lists should be reviewed with local capacity limits before activation."
+}

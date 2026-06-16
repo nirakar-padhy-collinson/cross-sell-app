@@ -378,7 +378,7 @@ section[data-testid="stSidebar"] {
     border: 1px solid rgba(34, 45, 60, 0.09);
     border-radius: 22px;
     padding: 1rem 1.05rem;
-    min-height: 178px;
+    min-height: 142px;
     height: 100%;
     box-shadow: 0 12px 26px rgba(20, 34, 50, 0.06);
 }
@@ -427,14 +427,14 @@ section[data-testid="stSidebar"] {
 
 .stat-card {
     height: 100%;
-    min-height: 274px;
-    padding: 0.95rem 1rem 0.9rem;
+    min-height: 148px;
+    padding: 0.92rem 1rem 0.95rem;
     border-radius: 20px;
     background: rgba(255, 252, 248, 0.74);
     border: 1px solid rgba(34, 45, 60, 0.08);
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between;
     box-shadow: 0 10px 22px rgba(20, 34, 50, 0.05);
 }
 
@@ -449,21 +449,19 @@ section[data-testid="stSidebar"] {
 .stat-card-value {
     margin-top: 0.48rem;
     color: var(--ink-strong);
-    font-size: clamp(1.45rem, 1.95vw, 2.35rem);
+    font-size: clamp(1.45rem, 1.85vw, 2.25rem);
     line-height: 1.08;
     font-weight: 700;
     letter-spacing: -0.04em;
-    min-height: 5.5rem;
     word-break: break-word;
 }
 
 .stat-card-description {
-    margin-top: 0.6rem;
+    margin-top: 0.7rem;
     color: #6f7a88;
     font-size: 0.88rem;
     line-height: 1.45;
-    margin-top: auto;
-    min-height: 4.3rem;
+    padding-top: 0.35rem;
 }
 
 .driver-item {

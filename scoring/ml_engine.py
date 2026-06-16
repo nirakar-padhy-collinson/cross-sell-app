@@ -17,15 +17,24 @@ from models.contracts import CrossSellOpportunity, FactorContribution, Recommend
 from utils.helpers import (
     PRODUCTS,
     clamp,
+    contact_cost,
     decision_from_score,
     default_channel,
-    expected_value,
+    gross_expected_value,
+    net_expected_value,
     next_step_from_decision,
     priority_band_from_score,
+    product_already_held,
+    product_eligibility_issues,
     probability_to_priority_score,
     safe_divide,
+    suppressing_issues,
     target_gap,
+    uplift_score,
 )
+
+
+APP_DIR = Path(__file__).resolve().parents[1]
 
 
 class MLRecommendationEngine:
@@ -33,6 +42,8 @@ class MLRecommendationEngine:
 
     def __init__(self, model_dir: str = "artifacts"):
         self.model_dir = Path(model_dir)
+        if not self.model_dir.is_absolute():
+            self.model_dir = APP_DIR / self.model_dir
         self.model_dir.mkdir(parents=True, exist_ok=True)
         self.pipeline_path = self.model_dir / "cross_sell_pipeline.joblib"
         self.pipeline: Optional[Pipeline] = None
@@ -171,8 +182,12 @@ class MLRecommendationEngine:
 
     def load(self) -> bool:
         if self.pipeline_path.exists():
-            self.pipeline = joblib.load(self.pipeline_path)
-            return True
+            try:
+                self.pipeline = joblib.load(self.pipeline_path)
+                return True
+            except Exception:
+                self.pipeline = None
+                return False
         return False
 
     def _score_one(self, app: CrossSellOpportunity, product: str) -> RecommendationOutput:
@@ -199,7 +214,10 @@ class MLRecommendationEngine:
             1,
         )
         value_score = round(clamp(prepared["value_index"].iloc[0] / 5.0, 0, 100), 1)
-        suppression_flag = int(app.recent_service_issue_flag == 1 or app.kyc_complete_flag == 0 or app.last_campaign_contact_days <= 4)
+        already_held = bool(product_already_held(app, product))
+        eligibility_issues = product_eligibility_issues(app, product)
+        suppression_reasons = suppressing_issues(eligibility_issues)
+        suppression_flag = int(bool(suppression_reasons))
 
         if self.pipeline is None:
             prob = clamp(
@@ -245,11 +263,17 @@ class MLRecommendationEngine:
         score = probability_to_priority_score(prob, value_index=min(value_score / 100.0, 1.0))
         if suppression_flag:
             score = min(score, 500.0)
+        elif already_held or eligibility_issues:
+            score = min(score, 520.0)
         priority_band = priority_band_from_score(score)
-        decision = decision_from_score(score, suppression_flag)
+        decision = "Hold / Defer" if (already_held or eligibility_issues) and not suppression_flag else decision_from_score(score, suppression_flag)
         channel = default_channel(decision, prob, app.rm_interactions_90d, app.channel_preference)
+        if (already_held or eligibility_issues) and not suppression_flag:
+            channel = "No Outreach"
         confidence = round(abs(prob - 0.5) * 2, 3)
-        exp_value = expected_value(prob, product, 1.0 + value_score / 200.0)
+        gross_value = 0.0 if suppression_flag or already_held or eligibility_issues else gross_expected_value(prob, product, 1.0 + value_score / 200.0)
+        net_value = 0.0 if suppression_flag or already_held or eligibility_issues else net_expected_value(prob, product, channel, 1.0 + value_score / 200.0)
+        exp_value = net_value
 
         factor_contributions = [
             FactorContribution(
@@ -264,6 +288,26 @@ class MLRecommendationEngine:
             )
             for item in feature_importance[:8]
         ]
+        if already_held:
+            factor_contributions.append(
+                FactorContribution(
+                    factor="Existing product",
+                    impact_direction="Negative",
+                    points=120.0,
+                    description=f"Customer already holds {product}, so this should not be routed as a cross-sell lead.",
+                )
+            )
+        for issue in eligibility_issues:
+            if already_held and issue == f"Customer already holds {product}.":
+                continue
+            factor_contributions.append(
+                FactorContribution(
+                    factor="Eligibility",
+                    impact_direction="Negative",
+                    points=90.0 if issue in suppression_reasons else 45.0,
+                    description=issue,
+                )
+            )
         ranked_contribs = sorted(factor_contributions, key=lambda x: x.points, reverse=True)
         positives = [c.description for c in ranked_contribs if c.impact_direction == "Positive"][:3]
         negatives = [c.description for c in ranked_contribs if c.impact_direction == "Negative"][:3]
@@ -283,6 +327,10 @@ class MLRecommendationEngine:
             product_fit_score=product_fit_score,
             value_score=value_score,
             suppression_flag=suppression_flag,
+            gross_expected_value=gross_value,
+            contact_cost=contact_cost(channel),
+            net_expected_value=net_value,
+            uplift_score=uplift_score(prob),
             top_positive_reasons=positives,
             top_negative_reasons=negatives,
             factor_contributions=ranked_contribs,
@@ -292,11 +340,24 @@ class MLRecommendationEngine:
         )
 
     def evaluate(self, app: CrossSellOpportunity) -> RecommendationOutput:
-        candidates = PRODUCTS if app.target_product == "Auto Select" else [app.target_product]
+        candidates = (
+            [product for product in PRODUCTS if not product_already_held(app, product)]
+            if app.target_product == "Auto Select"
+            else [app.target_product]
+        )
+        if not candidates:
+            candidates = PRODUCTS
         scored = [self._score_one(app, product) for product in candidates]
+        decision_rank = {
+            "RM Priority Lead": 4,
+            "Campaign Target": 3,
+            "Digital Nurture": 2,
+            "Hold / Defer": 1,
+            "Suppress": 0,
+        }
         ranked = sorted(
             scored,
-            key=lambda x: (x.decision != "Suppress", x.propensity_probability, x.expected_value, x.priority_score),
+            key=lambda x: (decision_rank.get(x.decision, 0), x.expected_value, x.propensity_probability, x.priority_score),
             reverse=True,
         )
         best = ranked[0]

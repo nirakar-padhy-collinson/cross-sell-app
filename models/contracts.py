@@ -41,6 +41,8 @@ class CrossSellOpportunity:
     lifecycle_stage: str = "Emerging"
     channel_preference: str = "Digital"
     target_product: str = "Auto Select"
+    consent_flag: int = 1
+    contactable_flag: int = 1
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -70,6 +72,10 @@ class RecommendationOutput:
     product_fit_score: float
     value_score: float
     suppression_flag: int
+    gross_expected_value: float = 0.0
+    contact_cost: float = 0.0
+    net_expected_value: float = 0.0
+    uplift_score: float = 0.0
     top_positive_reasons: List[str] = field(default_factory=list)
     top_negative_reasons: List[str] = field(default_factory=list)
     factor_contributions: List[FactorContribution] = field(default_factory=list)

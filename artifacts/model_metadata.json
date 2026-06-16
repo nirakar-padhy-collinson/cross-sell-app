@@ -1,0 +1,32 @@
+{
+  "model_name": "Cross-Sell Propensity and Next-Best-Action Demo",
+  "dataset_version": "cross-sell-demo-v2",
+  "business_purpose": "Rank eligible relationship-deepening opportunities for banker, campaign, and digital channels.",
+  "target_definition": "Converted flag after campaign contact, with a synthetic holdout group to estimate incremental lift.",
+  "primary_outputs": [
+    "recommended_product",
+    "recommended_channel",
+    "priority_score",
+    "propensity_probability",
+    "decision",
+    "gross_expected_value",
+    "contact_cost",
+    "net_expected_value",
+    "uplift_score"
+  ],
+  "guardrails": [
+    "Do not route products already held by the customer.",
+    "Suppress proactive outreach when consent, contactability, KYC, service issue, or cooldown checks fail.",
+    "Defer unsuitable products when income, bureau quality, age, segment, or balance criteria are not met.",
+    "Rank action candidates by actionable decision, net expected value, propensity, and priority score.",
+    "Use holdout-control rows to explain lift rather than raw conversion alone."
+  ],
+  "monitoring_pack": [
+    "contacted versus holdout conversion lift",
+    "top-decile lift",
+    "product performance",
+    "RM capacity allocation",
+    "proxy fairness by segment, city tier, employment type, and channel preference"
+  ],
+  "intended_demo_use": "Banking sales demo for small banks and fintechs; not production credit, insurance, or investment advice."
+}
