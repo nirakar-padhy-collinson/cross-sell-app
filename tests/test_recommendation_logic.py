@@ -130,11 +130,20 @@ class CrossSellRecommendationLogicTests(unittest.TestCase):
 
     def test_generated_dataset_matches_demo_schema(self):
         with tempfile.TemporaryDirectory() as data_dir:
-            df = generate_synthetic_dataset(Path(data_dir) / "history.csv", n_rows=25, seed=7)
+            df = generate_synthetic_dataset(Path(data_dir) / "history.csv", n_rows=220, seed=7)
 
         self.assertEqual(validate_history_schema(df), [])
         self.assertIn("historical_net_expected_value", df.columns)
         self.assertIn("holdout_control_flag", df.columns)
+        self.assertFalse(df["customer_name"].str.contains("Customer ").any())
+        self.assertFalse(df["customer_name"].str.contains("Golden -").any())
+        self.assertGreater(df["target_product"].eq("Auto Select").mean(), 0.35)
+        already_held = (
+            (df["historical_recommended_product"].eq("Credit Card") & df["has_credit_card_flag"].eq(1))
+            | (df["historical_recommended_product"].eq("Personal Loan") & df["has_personal_loan_flag"].eq(1))
+            | (df["historical_recommended_product"].eq("Insurance") & df["has_insurance_flag"].eq(1))
+        )
+        self.assertLess(already_held.mean(), 0.12)
 
 
 if __name__ == "__main__":

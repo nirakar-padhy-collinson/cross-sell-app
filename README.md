@@ -6,4 +6,6 @@ The historical lead review workspace is preserved in the codebase for future gov
 
 The workspace now includes a suite command landing, guided scenario library, structured banker brief, governance badges, decision packet export, champion/challenger comparison, what-if simulation, policy override notes, similar-customer comparison, model health indicators, suppression diagnostics, and banker activation queues.
 
+The bundled sample portfolio is synthetic but domain-calibrated: customer value, relationship depth, product holdings, consent, contactability, cooldown, suitability, propensity, campaign outcomes, and holdouts are generated with banking-style relationships rather than arbitrary random values.
+
 For the presenter talk track, use [DEMO_SCRIPT.md](DEMO_SCRIPT.md).

@@ -13,7 +13,7 @@ from utils.helpers import PRODUCTS, extract_numeric_id, format_entity_id, next_e
 
 APP_DIR = Path(__file__).resolve().parents[1]
 DATA_PATH = APP_DIR / "data" / "historical_cross_sell_opportunities.csv"
-DATASET_VERSION = "cross-sell-demo-v2"
+DATASET_VERSION = "growth-policy-v3"
 BRANCHES = [format_entity_id("BR", i) for i in range(1, 3)]
 EMPLOYEES_BY_BRANCH = {
     BRANCHES[0]: [format_entity_id("EM", i) for i in range(1, 6)],
@@ -25,6 +25,42 @@ CAMPAIGN_CODES = {
     "Insurance": "CP1003",
     "Wealth Upgrade": "CP1004",
 }
+FIRST_NAMES = [
+    "Aarav",
+    "Ananya",
+    "Dev",
+    "Diya",
+    "Ishaan",
+    "Kavya",
+    "Meera",
+    "Neha",
+    "Nisha",
+    "Pranav",
+    "Priya",
+    "Rahul",
+    "Rohan",
+    "Rohit",
+    "Sana",
+    "Vikram",
+]
+LAST_NAMES = [
+    "Bajaj",
+    "Chatterjee",
+    "Gupta",
+    "Iyer",
+    "Kapoor",
+    "Kulkarni",
+    "Malhotra",
+    "Mehta",
+    "Menon",
+    "Nair",
+    "Patel",
+    "Rao",
+    "Sen",
+    "Shah",
+    "Sharma",
+    "Verma",
+]
 REQUIRED_COLUMNS = [
     "opportunity_id",
     "customer_id",
@@ -143,6 +179,16 @@ def _weighted_choice(rng: np.random.Generator, mapping: Dict[str, float]) -> str
     return str(rng.choice(values, p=probs))
 
 
+def _round_to(value: float, nearest: int) -> float:
+    return float(round(value / nearest) * nearest)
+
+
+def _synthetic_person_name(rng: np.random.Generator, index: int) -> str:
+    first = str(rng.choice(FIRST_NAMES))
+    last = str(rng.choice(LAST_NAMES))
+    return f"{first} {last}"
+
+
 def _assign_branch_and_employee(i: int, rng: np.random.Generator) -> Tuple[str, str]:
     branch_id = BRANCHES[(i - 1) % len(BRANCHES)]
     employee_id = str(rng.choice(EMPLOYEES_BY_BRANCH[branch_id]))
@@ -162,7 +208,20 @@ def _sample_profile(rng: np.random.Generator) -> dict:
         "Business Owner": 162000,
         "Contract": 62000,
     }[employment_type]
-    monthly_income = float(np.clip(rng.normal(income_base + max(age - 30, 0) * 2200, income_base * 0.22), 28000, 420000))
+    income_center = max(income_base + max(age - 30, 0) * 2200, 30000)
+    income_sigma = {
+        "Salaried": 0.23,
+        "Self-Employed": 0.31,
+        "Professional": 0.28,
+        "Business Owner": 0.34,
+        "Contract": 0.25,
+    }[employment_type]
+    monthly_income = float(rng.lognormal(np.log(income_center) - 0.5 * income_sigma**2, income_sigma))
+    if employment_type in {"Business Owner", "Professional"} and rng.random() < 0.10:
+        monthly_income *= rng.uniform(1.35, 2.25)
+    if employment_type == "Contract" and rng.random() < 0.15:
+        monthly_income *= rng.uniform(0.70, 0.90)
+    monthly_income = _round_to(float(np.clip(monthly_income, 28000, 430000)), 500)
 
     if monthly_income >= 220000:
         segment = _weighted_choice(rng, {"HNI": 0.62, "Affluent": 0.38})
@@ -200,7 +259,11 @@ def _sample_profile(rng: np.random.Generator) -> dict:
 
     avg_monthly_balance = float(
         np.clip(
-            rng.normal(monthly_income * (1.2 if segment == "Mass" else 2.1 if segment == "Affluent" else 3.8), monthly_income * 0.8),
+            rng.lognormal(
+                np.log(max(monthly_income * (1.15 if segment == "Mass" else 2.0 if segment == "Affluent" else 3.7), 15000))
+                - 0.5 * 0.52**2,
+                0.52,
+            ),
             12000,
             850000,
         )
@@ -211,7 +274,7 @@ def _sample_profile(rng: np.random.Generator) -> dict:
     avg_credit_txn_count_3m = int(np.clip(rng.normal(7 if existing_customer_flag else 5, 3), 1, 20))
     branch_visits_90d = int(np.clip(rng.poisson(1.8 if channel_preference == "RM / Branch" else 0.8), 0, 8))
     rm_interactions_90d = int(np.clip(rng.poisson(2.6 if segment in {"Affluent", "HNI"} else 0.9), 0, 9))
-    last_campaign_contact_days = int(np.clip(rng.gamma(shape=2.1, scale=26.0), 0, 210))
+    last_campaign_contact_days = int(np.clip(rng.gamma(shape=2.1, scale=34.0), 0, 240))
     last_campaign_response = _weighted_choice(
         rng,
         {
@@ -262,7 +325,7 @@ def _sample_profile(rng: np.random.Generator) -> dict:
         "has_personal_loan_flag": has_personal_loan_flag,
         "has_home_loan_flag": has_home_loan_flag,
         "has_insurance_flag": has_insurance_flag,
-        "avg_monthly_balance": round(avg_monthly_balance, 2),
+        "avg_monthly_balance": round(_round_to(avg_monthly_balance, 500), 2),
         "avg_debit_txn_count_3m": avg_debit_txn_count_3m,
         "avg_credit_txn_count_3m": avg_credit_txn_count_3m,
         "digital_login_count_30d": digital_login_count_30d,
@@ -288,6 +351,12 @@ def _recommended_target_product(profile: dict, rng: np.random.Generator) -> str:
         "Insurance": 0.22 + 0.10 * (1 - profile["has_insurance_flag"]) + 0.08 * (profile["age"] >= 32) + 0.06 * (profile["branch_visits_90d"] >= 1),
         "Wealth Upgrade": 0.18 + 0.14 * (profile["segment"] in {"Affluent", "HNI"}) + 0.10 * (profile["avg_monthly_balance"] >= 180000) + 0.06 * (profile["rm_interactions_90d"] >= 2),
     }
+    if profile["has_credit_card_flag"]:
+        product_scores["Credit Card"] *= 0.18
+    if profile["has_personal_loan_flag"]:
+        product_scores["Personal Loan"] *= 0.22
+    if profile["has_insurance_flag"]:
+        product_scores["Insurance"] *= 0.22
     products = list(product_scores.keys())
     probs = np.array(list(product_scores.values()), dtype=float)
     probs = probs / probs.sum()
@@ -332,7 +401,7 @@ def _conversion_probability(app: CrossSellOpportunity, evaluation: Recommendatio
 def golden_demo_opportunities(start_index: int = 1) -> list[CrossSellOpportunity]:
     scenarios = [
         {
-            "customer_name": "Golden - HNI Wealth Priority",
+            "customer_name": "Meera Shah",
             "age": 45,
             "segment": "HNI",
             "monthly_income": 360000.0,
@@ -366,7 +435,7 @@ def golden_demo_opportunities(start_index: int = 1) -> list[CrossSellOpportunity
             "contactable_flag": 1,
         },
         {
-            "customer_name": "Golden - Service Suppression",
+            "customer_name": "Rahul Mehta",
             "age": 39,
             "segment": "Affluent",
             "monthly_income": 190000.0,
@@ -400,7 +469,7 @@ def golden_demo_opportunities(start_index: int = 1) -> list[CrossSellOpportunity
             "contactable_flag": 1,
         },
         {
-            "customer_name": "Golden - Already Holds Card",
+            "customer_name": "Priya Nair",
             "age": 34,
             "segment": "Mass",
             "monthly_income": 95000.0,
@@ -434,7 +503,7 @@ def golden_demo_opportunities(start_index: int = 1) -> list[CrossSellOpportunity
             "contactable_flag": 1,
         },
         {
-            "customer_name": "Golden - Contact Fatigue",
+            "customer_name": "Dev Malhotra",
             "age": 42,
             "segment": "Affluent",
             "monthly_income": 210000.0,
@@ -468,7 +537,7 @@ def golden_demo_opportunities(start_index: int = 1) -> list[CrossSellOpportunity
             "contactable_flag": 1,
         },
         {
-            "customer_name": "Golden - Suitability Hold",
+            "customer_name": "Sana Gupta",
             "age": 28,
             "segment": "Mass",
             "monthly_income": 42000.0,
@@ -659,14 +728,28 @@ def generate_synthetic_dataset(
     for i in range(1, n_rows + 1):
         branch_id, employee_id = _assign_branch_and_employee(i, rng)
         profile = _sample_profile(rng)
-        target_product = _recommended_target_product(profile, rng)
+        seed_product = _recommended_target_product(profile, rng)
+        held_products = [
+            product
+            for product, flag in [
+                ("Credit Card", profile["has_credit_card_flag"]),
+                ("Personal Loan", profile["has_personal_loan_flag"]),
+                ("Insurance", profile["has_insurance_flag"]),
+            ]
+            if flag
+        ]
+        if held_products and rng.random() < 0.045:
+            target_product = str(rng.choice(held_products))
+        else:
+            target_product = "Auto Select" if rng.random() < 0.55 else seed_product
+        campaign_product = seed_product if target_product == "Auto Select" else target_product
         app = CrossSellOpportunity(
             opportunity_id=format_entity_id("OP", i),
             customer_id=format_entity_id("CU", i),
             employee_id=employee_id,
             branch_id=branch_id,
-            campaign_id=CAMPAIGN_CODES[target_product],
-            customer_name=f"Customer {i}",
+            campaign_id=CAMPAIGN_CODES[campaign_product],
+            customer_name=_synthetic_person_name(rng, i),
             target_product=target_product,
             **profile,
         )

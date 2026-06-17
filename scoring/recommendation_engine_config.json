@@ -1,5 +1,5 @@
 {
-  "base_score": 585,
+  "base_score": 560,
   "score_bounds": {"min": 300, "max": 900},
   "probability_mapping": {"min_prob": 0.04, "max_prob": 0.82},
   "priority_band_thresholds": [
@@ -24,29 +24,29 @@
     "Suppress": "Suppress outreach. Address service, compliance, or contact-fatigue constraints before reactivating."
   },
   "product_profiles": {
-    "Credit Card": {"base_adjustment": 24, "value_multiplier": 0.95, "preferred_channel": "Digital"},
-    "Personal Loan": {"base_adjustment": 10, "value_multiplier": 1.15, "preferred_channel": "Hybrid"},
-    "Insurance": {"base_adjustment": 5, "value_multiplier": 1.05, "preferred_channel": "RM / Branch"},
-    "Wealth Upgrade": {"base_adjustment": 18, "value_multiplier": 1.35, "preferred_channel": "RM / Branch"}
+    "Credit Card": {"base_adjustment": 18, "value_multiplier": 0.95, "preferred_channel": "Digital"},
+    "Personal Loan": {"base_adjustment": 8, "value_multiplier": 1.15, "preferred_channel": "Hybrid"},
+    "Insurance": {"base_adjustment": 2, "value_multiplier": 1.05, "preferred_channel": "RM / Branch"},
+    "Wealth Upgrade": {"base_adjustment": 12, "value_multiplier": 1.35, "preferred_channel": "RM / Branch"}
   },
   "rules": [
     {
       "name": "bureau_score",
       "metric": "bureau_score",
       "bands": [
-        {"min": 780, "points": 75, "rationale": "Strong bureau quality supports confident targeting and lower friction sales."},
-        {"min": 735, "max": 779, "points": 48, "rationale": "Solid bureau quality supports product expansion."},
-        {"min": 680, "max": 734, "points": 18, "rationale": "Average bureau quality supports selective targeting."},
-        {"min": 0, "max": 679, "points": -70, "rationale": "Weak bureau quality reduces suitability for proactive sales."}
+        {"min": 780, "points": 70, "rationale": "Strong bureau quality supports confident targeting and lower friction sales."},
+        {"min": 735, "max": 779, "points": 44, "rationale": "Solid bureau quality supports product expansion."},
+        {"min": 680, "max": 734, "points": 15, "rationale": "Average bureau quality supports selective targeting."},
+        {"min": 0, "max": 679, "points": -75, "rationale": "Weak bureau quality reduces suitability for proactive sales."}
       ]
     },
     {
       "name": "monthly_income",
       "metric": "monthly_income",
       "bands": [
-        {"min": 180000, "points": 55, "rationale": "High income expands product fit and expected value."},
-        {"min": 100000, "max": 179999, "points": 32, "rationale": "Healthy income supports multi-product eligibility."},
-        {"min": 55000, "max": 99999, "points": 10, "rationale": "Income profile supports standard retail offers."},
+        {"min": 180000, "points": 50, "rationale": "High income expands product fit and expected value."},
+        {"min": 100000, "max": 179999, "points": 28, "rationale": "Healthy income supports multi-product eligibility."},
+        {"min": 55000, "max": 99999, "points": 8, "rationale": "Income profile supports standard retail offers."},
         {"min": 0, "max": 54999, "points": -24, "rationale": "Lower income narrows product fit and value potential."}
       ]
     },
@@ -54,9 +54,9 @@
       "name": "avg_monthly_balance",
       "metric": "avg_monthly_balance",
       "bands": [
-        {"min": 300000, "points": 68, "rationale": "Strong balances indicate deep wallet share potential."},
-        {"min": 125000, "max": 299999, "points": 38, "rationale": "Balances support richer cross-sell conversations."},
-        {"min": 40000, "max": 124999, "points": 14, "rationale": "Moderate balances support selected propositions."},
+        {"min": 300000, "points": 62, "rationale": "Strong balances indicate deep wallet share potential."},
+        {"min": 125000, "max": 299999, "points": 34, "rationale": "Balances support richer cross-sell conversations."},
+        {"min": 40000, "max": 124999, "points": 10, "rationale": "Moderate balances support selected propositions."},
         {"min": 0, "max": 39999, "points": -16, "rationale": "Low balances reduce immediate commercial upside."}
       ]
     },
@@ -74,9 +74,9 @@
       "name": "relationship_tenure_months",
       "metric": "relationship_tenure_months",
       "bands": [
-        {"min": 84, "points": 34, "rationale": "Long tenure supports deeper trust and broader product fit."},
-        {"min": 36, "max": 83, "points": 20, "rationale": "Established relationship supports expansion."},
-        {"min": 12, "max": 35, "points": 8, "rationale": "Relationship is building but not yet fully mature."},
+        {"min": 84, "points": 30, "rationale": "Long tenure supports deeper trust and broader product fit."},
+        {"min": 36, "max": 83, "points": 18, "rationale": "Established relationship supports expansion."},
+        {"min": 12, "max": 35, "points": 6, "rationale": "Relationship is building but not yet fully mature."},
         {"min": 0, "max": 11, "points": -18, "rationale": "New relationship warrants lighter targeting first."}
       ]
     },
@@ -120,7 +120,7 @@
       "name": "kyc_complete_flag",
       "metric": "kyc_complete_flag",
       "bands": [
-        {"min": 1, "points": 16, "rationale": "KYC completion supports operational readiness for fulfillment."},
+        {"min": 1, "points": 12, "rationale": "KYC completion supports operational readiness for fulfillment."},
         {"min": 0, "max": 0, "points": -55, "rationale": "Incomplete KYC blocks smooth fulfillment and should reduce targeting priority."}
       ]
     },
@@ -128,7 +128,7 @@
       "name": "target_gap",
       "metric": "target_gap",
       "bands": [
-        {"min": 1, "points": 54, "rationale": "Customer does not already hold the target product, preserving cross-sell whitespace."},
+        {"min": 1, "points": 46, "rationale": "Customer does not already hold the target product, preserving cross-sell whitespace."},
         {"min": 0, "max": 0, "points": -72, "rationale": "Target product is already held, so cross-sell value is limited."}
       ]
     }
