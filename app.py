@@ -1007,14 +1007,13 @@ def render_new_opportunity_tab(df: pd.DataFrame, engines: Dict[str, object], sel
         render_output(st.session_state["latest_output"], st.session_state.get("latest_opportunity"), engines, selected_engine_name, df)
 
 
-# Review workspace is hidden from the primary UI for product simplicity, but retained
-# for future audit, explainability, and model/rule comparison use.
+# Review workspace supports governance, audit, explainability, and model/rule replay.
 def render_case_review_tab(df: pd.DataFrame, engines: Dict[str, object], selected_engine_name: str):
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     render_section_intro(
-        "Review Workspace",
-        "Lead / Customer Review",
-        "Search a historical opportunity or customer, then compare the stored portfolio record against the current engine view for a more executive-style side-by-side review.",
+        "Governance Workspace",
+        "Decision Review",
+        "Search a historical opportunity or customer, then compare the stored portfolio record against current rule and ML replay using the same customer inputs.",
     )
 
     search_mode = st.radio("Search By", ["Opportunity ID", "Customer ID"], horizontal=True, help="Choose whether to retrieve a saved case by lead ID or customer ID.")
@@ -1036,35 +1035,47 @@ def render_case_review_tab(df: pd.DataFrame, engines: Dict[str, object], selecte
     selected_id = st.selectbox("Select Record", options=review_df["opportunity_id"].tolist(), help="Pick the saved assessment you want to compare against the currently selected engine.")
     record = review_df[review_df["opportunity_id"] == selected_id].iloc[0]
     opportunity = build_opportunity_from_row(record)
-    current_output = engines[selected_engine_name].evaluate(opportunity)
+    rule_output = engines["Rule-Based Recommendation Engine"].evaluate(opportunity)
+    ml_output = engines["Machine Learning Recommendation Engine"].evaluate(opportunity)
 
-    left, right = st.columns(2, gap="large")
-    with left:
-        st.markdown("### Historical Record")
-        hist_summary = pd.DataFrame(
-            [
-                {"Metric": "Decision", "Value": record["historical_decision"]},
-                {"Metric": "Recommended Product", "Value": record["historical_recommended_product"]},
-                {"Metric": "Priority Score", "Value": record["historical_priority_score"]},
-                {"Metric": "Propensity", "Value": fmt_pct(record["historical_propensity_probability"])},
-                {"Metric": "Converted", "Value": "Yes" if pd.notna(record["converted_flag"]) and int(record["converted_flag"]) == 1 else "No / Pending"},
-            ]
-        )
-        render_table(hist_summary, max_rows_visible=6)
-    with right:
-        st.markdown("### Current Engine View")
-        current_summary = pd.DataFrame(
-            [
-                {"Metric": "Decision", "Value": current_output.decision},
-                {"Metric": "Recommended Product", "Value": current_output.recommended_product},
-                {"Metric": "Priority Score", "Value": f"{current_output.priority_score:.0f}"},
-                {"Metric": "Propensity", "Value": fmt_pct(current_output.propensity_probability)},
-                {"Metric": "Channel", "Value": current_output.recommended_channel},
-            ]
-        )
-        render_table(current_summary, max_rows_visible=6)
+    st.markdown("### Recorded Decision vs Current Engine Replay")
+    st.caption(
+        "Replay uses the same saved customer inputs. It is a current-engine comparison, not a reconstruction of an older model artifact."
+    )
+    comparison_df = pd.DataFrame(
+        [
+            ["Decision", record["historical_decision"], rule_output.decision, ml_output.decision],
+            ["Recommended Product", record["historical_recommended_product"], rule_output.recommended_product, ml_output.recommended_product],
+            ["Priority Score", f"{float(record['historical_priority_score']):.0f}", f"{rule_output.priority_score:.0f}", f"{ml_output.priority_score:.0f}"],
+            ["Propensity", fmt_pct(record["historical_propensity_probability"]), fmt_pct(rule_output.propensity_probability), fmt_pct(ml_output.propensity_probability)],
+            ["Channel", record["historical_channel"], rule_output.recommended_channel, ml_output.recommended_channel],
+            ["Next Step", record["historical_next_step"], rule_output.recommended_next_step, ml_output.recommended_next_step],
+        ],
+        columns=["Measure", "Recorded History", "Current Rule Replay", "Current ML Replay"],
+    )
+    render_table(comparison_df, max_rows_visible=6)
 
-    st.markdown("### Application Detail")
+    if record["historical_decision"] != rule_output.decision or record["historical_decision"] != ml_output.decision:
+        st.warning("At least one current engine replay differs from the recorded decision. Treat this as a campaign governance review cue.")
+    else:
+        st.success("Recorded decision and current replays are directionally aligned.")
+
+    st.markdown("### Recorded Customer Interaction Context")
+    interaction_df = pd.DataFrame(
+        [
+            {"Item": "Assessment Timestamp", "Value": record.get("assessment_timestamp", "N/A")},
+            {"Item": "Last Campaign Response", "Value": record.get("last_campaign_response", "N/A")},
+            {"Item": "Days Since Last Contact", "Value": record.get("last_campaign_contact_days", "N/A")},
+            {"Item": "Prior Accepted Offers 12M", "Value": record.get("prior_offer_accept_count_12m", "N/A")},
+            {"Item": "RM Interactions 90D", "Value": record.get("rm_interactions_90d", "N/A")},
+            {"Item": "Branch Visits 90D", "Value": record.get("branch_visits_90d", "N/A")},
+            {"Item": "Contacted / Holdout / Converted", "Value": f"{record.get('contacted_flag', 'N/A')} / {record.get('holdout_control_flag', 'N/A')} / {record.get('converted_flag', 'N/A')}"},
+            {"Item": "Realized Value", "Value": fmt_currency(record.get("realized_value", 0)) if pd.notna(record.get("realized_value", 0)) else "Pending"},
+        ]
+    )
+    render_table(interaction_df, max_rows_visible=8)
+
+    st.markdown("### Opportunity Detail")
     detail_columns = [
         "opportunity_id", "customer_id", "employee_id", "branch_id", "campaign_id", "customer_name", "age", "segment",
         "monthly_income", "relationship_tenure_months", "employment_type", "city_tier", "existing_customer_flag",
@@ -1076,8 +1087,16 @@ def render_case_review_tab(df: pd.DataFrame, engines: Dict[str, object], selecte
     detail_df = pd.DataFrame({"Field": detail_columns, "Value": [record[col] for col in detail_columns]})
     render_table(detail_df, max_rows_visible=10)
 
-    st.markdown("### Current Rationale")
-    render_output(current_output, opportunity, engines, selected_engine_name, df)
+    st.markdown("### Current Replay Drivers")
+    left, right = st.columns(2, gap="large")
+    with left:
+        st.markdown("#### Rule-Based Engine")
+        for item in rule_output.top_negative_reasons[:3] + rule_output.top_positive_reasons[:3]:
+            render_driver_item(item, "negative" if item in rule_output.top_negative_reasons else "positive")
+    with right:
+        st.markdown("#### Machine Learning Engine")
+        for item in ml_output.top_negative_reasons[:3] + ml_output.top_positive_reasons[:3]:
+            render_driver_item(item, "negative" if item in ml_output.top_negative_reasons else "positive")
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -1394,7 +1413,7 @@ def main():
             options=["Rule-Based Recommendation Engine", "Machine Learning Recommendation Engine"],
             index=0,
         )
-        st.caption("The selected engine is used in New Assessment and Portfolio Overview.")
+        st.caption("The selected engine is used in New Assessment, Portfolio Overview, and Decision Review context.")
 
         st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
         st.caption("Use governed customer data with consent, contactability, and suitability controls before activating outreach.")
@@ -1402,15 +1421,15 @@ def main():
     render_workflow_guide()
     engines = get_engines(str(DATA_FILE))
 
-    # Review workspace is retained in code for future audit and comparison use,
-    # but hidden from the primary UI to keep the product workflow focused.
-    tab1, tab2, tab3 = st.tabs(["Suite Command", "New Opportunity", "Portfolio Overview"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Suite Command", "New Opportunity", "Portfolio Overview", "Decision Review"])
     with tab1:
         render_cross_sell_suite_command(df)
     with tab2:
         render_new_opportunity_tab(df, engines, selected_engine_name)
     with tab3:
         render_portfolio_tab(df)
+    with tab4:
+        render_case_review_tab(df, engines, selected_engine_name)
 
 
 if __name__ == "__main__":
